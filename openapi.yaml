@@ -1,0 +1,149 @@
+openapi: 3.1.0
+info:
+  title: NephroDesk AI Pro — Clinical REST API
+  version: 1.0.0-rc.1
+  description: |
+    Bilingual (FR/EN) Nephrology Clinical Assistant & Patient Record Management System API.
+    All protected endpoints enforce server-side session authentication, role-based access control (RBAC),
+    strict payload validation, and structured audit logging without PHI leakage.
+servers:
+  - url: https://nephrodesk.clinical-internal.example.org/api/v1
+    description: Production HTTPS Endpoint
+  - url: http://127.0.0.1:8080/api/v1
+    description: Local Development Endpoint
+security:
+  - sessionCookieAuth: []
+paths:
+  /health:
+    get:
+      summary: Health-check endpoint
+      security: []
+      responses:
+        '200':
+          description: Service healthy
+  /auth/login:
+    post:
+      summary: Authenticate clinician or authorized user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                mfaCode: { type: string }
+      responses:
+        '200': { description: Session established via HttpOnly, Secure, SameSite=Strict cookie }
+        '401': { description: Invalid credentials or MFA token }
+        '429': { description: Rate limit exceeded }
+  /auth/logout:
+    post:
+      summary: Revoke current session
+      responses:
+        '204': { description: Session revoked }
+  /patients:
+    get:
+      summary: List and search authorized patient records (accent-insensitive, paginated)
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, default: 20 }
+      responses:
+        '200': { description: Paginated list of authorized patient summaries }
+        '403': { description: Forbidden }
+    post:
+      summary: Register a new patient record (Requires patients:write)
+      responses:
+        '201': { description: Patient created }
+        '400': { description: Validation error }
+        '403': { description: Forbidden }
+  /patients/{patientId}:
+    get:
+      summary: Retrieve comprehensive patient profile
+      parameters:
+        - in: path
+          name: patientId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Patient profile with consultations, labs, allergies, and medications }
+        '403': { description: Unauthorized access to restricted patient record }
+        '404': { description: Patient not found }
+  /patients/{patientId}/archive:
+    post:
+      summary: Reversibly archive a patient record (Requires patients:archive)
+      parameters:
+        - in: path
+          name: patientId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Patient archived }
+  /consultations:
+    post:
+      summary: Create a draft or finalized consultation (Requires consultations:write)
+      responses:
+        '201': { description: Consultation recorded }
+  /consultations/{consultationId}/amend:
+    post:
+      summary: Append a versioned amendment to a finalized consultation without overwriting history
+      parameters:
+        - in: path
+          name: consultationId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Amendment version appended }
+  /laboratory/results:
+    post:
+      summary: Record a laboratory result with lab-specific reference ranges and explicit units
+      responses:
+        '201': { description: Laboratory result created }
+  /calculators/{calculatorId}:
+    post:
+      summary: Execute a validated nephrology calculation (ckd-epi-2021, fena, anion-gap, upcr, uacr, cockcroft-gault, free-water-deficit)
+      parameters:
+        - in: path
+          name: calculatorId
+          required: true
+          schema:
+            type: string
+            enum: [ckd-epi-2021, fena, anion-gap, upcr, uacr, cockcroft-gault, free-water-deficit]
+      responses:
+        '200': { description: Calculation result with formula, units, interpretation guidance, and limitations }
+        '400': { description: Invalid or out-of-range clinical input }
+  /data/export:
+    post:
+      summary: Export authorized clinical records in versioned JSON format (nephrodesk.export.v1)
+      responses:
+        '200': { description: Versioned export bundle }
+        '403': { description: Forbidden }
+  /data/import:
+    post:
+      summary: Validate, preview, and import versioned clinical dataset with duplicate detection
+      responses:
+        '200': { description: Import preview or execution summary }
+        '400': { description: Malformed file or unsupported schema version }
+        '409': { description: Duplicate records detected without overwrite confirmation }
+  /audit-events:
+    get:
+      summary: List security and clinical access audit events (Requires ADMIN role)
+      responses:
+        '200': { description: Paginated audit trail }
+        '403': { description: Forbidden }
+components:
+  securitySchemes:
+    sessionCookieAuth:
+      type: apiKey
+      in: cookie
+      name: __Host-nephrodesk_session

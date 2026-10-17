@@ -1,0 +1,13 @@
+{
+  "name": "NephroDesk AI Pro — Full-Stack Clinical Workspace",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-18-bookworm",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "NephroDesk AI Pro WebApp & REST API",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "npm test",
+  "postAttachCommand": "npm start"
+}

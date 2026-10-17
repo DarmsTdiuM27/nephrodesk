@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  nephrodesk-db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nephrodesk_db
+      POSTGRES_USER: nephrodesk_app
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_only_local_password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/database/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+      - ./src/database/seed/seed_synthetic.sql:/docker-entrypoint-initdb.d/002_seed_synthetic.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nephrodesk_app -d nephrodesk_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nephrodesk-api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      nephrodesk-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgresql://nephrodesk_app:${DB_PASSWORD:-dev_only_local_password}@nephrodesk-db:5432/nephrodesk_db
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  pgdata:

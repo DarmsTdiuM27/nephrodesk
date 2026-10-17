@@ -1,0 +1,19 @@
+{
+  "name": "nephrodesk-ai-pro",
+  "version": "1.0.0-rc.1",
+  "description": "NephroDesk AI Pro — Bilingual Nephrology Clinical Assistant & Patient Record Management System",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server/index.js",
+    "dev": "node --watch src/server/index.js",
+    "test": "node --test tests/run_all_tests.js",
+    "db:migrate": "psql $DATABASE_URL -f src/database/migrations/001_initial_schema.sql",
+    "db:seed": "psql $DATABASE_URL -f src/database/seed/seed_synthetic.sql"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "NephroDesk Clinical Informatics Engineering",
+  "license": "UNLICENSED"
+}

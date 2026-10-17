@@ -1,0 +1,21 @@
+# ============================================================================
+# NEPHRODESK AI PRO — RENDER.COM FREE TIER DEPLOYMENT BLUEPRINT
+# Connect your GitHub repository at https://dashboard.render.com/blueprints
+# ============================================================================
+services:
+  - type: web
+    name: nephrodesk-ai-pro
+    runtime: node
+    plan: free
+    buildCommand: npm test
+    startCommand: node src/server/index.js
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: AI_ASSISTANT_ENABLED
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
